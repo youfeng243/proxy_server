@@ -11,8 +11,6 @@
 import json
 
 from flask import Response
-from flask.ext.login.utils import _cookie_digest
-from werkzeug.security import safe_str_cmp
 
 from logger import Logger
 
@@ -34,6 +32,14 @@ ERROR_MSG = {
     HTTP_NOT_IMPLEMENTED: 'not implemented',
 }
 
+# 代理服务
+REMOTE_PROXY_CONF = {
+    'host': '112.74.163.187',
+    'port': 9300,
+}
+
+LOCAL_HOST = '101.132.128.78'
+
 log = Logger('proxy_server.log').get_logger()
 
 
@@ -41,11 +47,12 @@ def json_resp(data, http_status):
     return Response(data, status=http_status, mimetype="application/json")
 
 
-def fail(is_success=False):
+def fail(msg='error'):
     resp = {
-        'success': is_success,
+        'success': False,
         'proxy': None,
-        'type': None
+        'type': None,
+        'error': msg,
     }
 
     data = json.dumps(resp)
@@ -53,16 +60,12 @@ def fail(is_success=False):
 
 
 # 返回成功
-def success(is_success=False, proxy=None):
+def success(proxy=None):
     resp = {
-        'success': is_success,
+        'success': True,
         'proxy': None,
         'type': None
     }
-
-    if is_success is False:
-        data = json.dumps(resp)
-        return json_resp(data, HTTP_OK)
 
     if proxy is None or proxy == '':
         resp['success'] = False
@@ -78,34 +81,33 @@ def success(is_success=False, proxy=None):
     data = json.dumps(resp)
     return json_resp(data, HTTP_OK)
 
-
-def encode_username(username):
-    '''
-    This will encode a ``unicode`` value into a cookie, and sign that cookie
-    with the app's secret key.
-
-    :param username: The value to encode, as `unicode`.
-    :type username: unicode
-    '''
-    return u'{0}|{1}'.format(str(username), _cookie_digest(str(username)))
-
-
-def decode_username(cookie):
-    '''
-    This decodes a cookie given by `encode_cookie`. If verification of the
-    cookie fails, ``None`` will be implicitly returned.
-
-    :param cookie: An encoded cookie.
-    :type cookie: str
-    '''
-    try:
-        payload, digest = cookie.rsplit(u'|', 1)
-        if hasattr(digest, 'decode'):
-            digest = digest.decode('ascii')  # pragma: no cover
-    except ValueError:
-        return None
-
-    if safe_str_cmp(_cookie_digest(payload), digest):
-        return payload
-
-    return None
+# def encode_username(username):
+#     '''
+#     This will encode a ``unicode`` value into a cookie, and sign that cookie
+#     with the app's secret key.
+#
+#     :param username: The value to encode, as `unicode`.
+#     :type username: unicode
+#     '''
+#     return u'{0}|{1}'.format(str(username), _cookie_digest(str(username)))
+#
+#
+# def decode_username(cookie):
+#     '''
+#     This decodes a cookie given by `encode_cookie`. If verification of the
+#     cookie fails, ``None`` will be implicitly returned.
+#
+#     :param cookie: An encoded cookie.
+#     :type cookie: str
+#     '''
+#     try:
+#         payload, digest = cookie.rsplit(u'|', 1)
+#         if hasattr(digest, 'decode'):
+#             digest = digest.decode('ascii')  # pragma: no cover
+#     except ValueError:
+#         return None
+#
+#     if safe_str_cmp(_cookie_digest(payload), digest):
+#         return payload
+#
+#     return None
